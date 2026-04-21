@@ -1,11 +1,11 @@
 [
   {
-    "query": "students walking on the campus path",
+    "query": "person carrying a bag near the entrance of building",
     "expected_start": 0.0,
     "expected_end": 20.0
   },
   {
-    "query": "motorcycle riding on the road",
+    "query": "person riding a bike",
     "expected_start": 35.0,
     "expected_end": 45.0
   },

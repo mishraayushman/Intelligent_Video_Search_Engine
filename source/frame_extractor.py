@@ -6,7 +6,7 @@ Extracts frames from a video at a given FPS and saves metadata.json.
 import cv2
 import os
 import json
-from log import logg
+from source.log import logg
 
 def extract_frames(video_path: str, output_folder: str, fps: int = 1) -> None:
     os.makedirs(output_folder, exist_ok=True)

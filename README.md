@@ -63,16 +63,8 @@ torchvision>=0.15.0
 openai-clip
 faiss-cpu          # replace with faiss-gpu if CUDA is available
 opencv-python
-scenedetect[opencv]
 Pillow
-fastapi
-uvicorn[standard]
 streamlit
-sqlalchemy
-numpy
-pandas
-tqdm
-loguru
 ```
 
 > **CPU-only machines:** The system auto-detects CUDA availability and falls back to INT8-quantised CLIP inference. No extra configuration required.
@@ -87,36 +79,25 @@ python -c "import clip; clip.load('ViT-B/32')"
 
 ```bash
 # Single file
-python index.py --input path/to/video.mp4 --output ./index/
+python faiss1.py --input path/to/video.mp4 --output ./index/
 
 # Directory of clips
-python index.py --input path/to/clips/ --output ./index/
+python faiss1.py --input path/to/clips/ --output ./index/
 ```
 
 ### Step 6 — Run a query
 
 **CLI:**
 ```bash
-python query.py --index ./index/ --query "person carrying a bag near the entrance" --top-k 5
+python search.py --index ./index/ --query "person carrying a bag near the entrance" --top-k 5
 ```
 
 **With temporal filter:**
 ```bash
-python query.py --index ./index/ \
+python search.py --index ./index/ \
   --query "two people talking near the server rack" \
   --after "18:00:00" --before "20:00:00" \
-  --top-k 10
-```
-
-**REST API:**
-```bash
-uvicorn api:app --reload --port 8000
-```
-```bash
-curl -X POST http://localhost:8000/search \
-  -H "Content-Type: application/json" \
-  -d '{"query": "red vehicle in zone 3", "top_k": 5}'
-```
+  --top-k 5
 
 **Streamlit UI:**
 ```bash
@@ -124,7 +105,7 @@ streamlit run app.py
 # Opens at http://localhost:8501
 ```
 
-Results are automatically saved to `results/results.json` and `results/results.csv`.
+Results are automatically saved to `results.csv`.
 
 ---
 
@@ -136,40 +117,40 @@ The system is divided into two phases: a **one-time offline indexing pipeline** 
 
 ```
 ╔══════════════════════════════════════════════════════════════════╗
-║            PHASE 1 — OFFLINE INDEXING PIPELINE                  ║
+║            PHASE 1 — OFFLINE INDEXING PIPELINE                   ║
 ║                  (Run once per video archive)                    ║
 ╠══════════════════════════════════════════════════════════════════╣
 ║                                                                  ║
-║   Video File(s) / Directory                                      ║
+║   Video File(s) / Directory                                       ║
 ║           │                                                      ║
 ║           ▼                                                      ║
 ║   ┌───────────────────┐                                          ║
-║   │   Frame Sampler   │  PySceneDetect content-aware sampling   ║
-║   │                   │  + uniform 1 fps fallback               ║
+║   │   Frame Sampler   │  PySceneDetect content-aware sampling    ║
+║   │                   │  + uniform 1 fps fallback                ║
 ║   └────────┬──────────┘                                          ║
-║            │  Keyframes + timestamps                            ║
+║            │  Keyframes + timestamps                             ║
 ║            ▼                                                     ║
 ║   ┌───────────────────┐                                          ║
-║   │  Temporal Window  │  Sliding window of ±2 adjacent frames   ║
-║   │  Aggregation      │  → averaged context embedding           ║
+║   │  Temporal Window  │  Sliding window of ±2 adjacent frames    ║
+║   │  Aggregation      │  → averaged context embedding            ║
 ║   └────────┬──────────┘                                          ║
 ║            │                                                     ║
 ║            ▼                                                     ║
 ║   ┌───────────────────┐                                          ║
-║   │  CLIP ViT-B/32    │  Batched inference (batch_size=64)      ║
-║   │  Vision Encoder   │  FP16 on GPU / INT8 on CPU              ║
+║   │  CLIP ViT-B/32    │  Batched inference (batch_size=64)       ║
+║   │  Vision Encoder   │  FP16 on GPU / INT8 on CPU               ║
 ║   └────────┬──────────┘                                          ║
-║            │  512-dim dense embeddings                          ║
+║            │  512-dim dense embeddings                           ║
 ║            ▼                                                     ║
-║   ┌───────────────────┐   ┌────────────────────────┐            ║
-║   │   FAISS Index     │   │   SQLite Metadata DB   │            ║
-║   │  (IVFFlat ANN)    │   │  timestamp, video_path │            ║
-║   │  faiss.index      │   │  frame_path, video_id  │            ║
-║   └───────────────────┘   └────────────────────────┘            ║
+║   ┌───────────────────┐                                          ║
+║   │   FAISS Index     │                                          ║
+║   │  (IVFFlat ANN)    │                                          ║
+║   │  faiss.index      │                                          ║
+║   └───────────────────┘                                          ║
 ╚══════════════════════════════════════════════════════════════════╝
 
 ╔══════════════════════════════════════════════════════════════════╗
-║              PHASE 2 — ONLINE QUERY PIPELINE                    ║
+║              PHASE 2 — ONLINE QUERY PIPELINE                     ║
 ║                    (Sub-second at query time)                    ║
 ╠══════════════════════════════════════════════════════════════════╣
 ║                                                                  ║
@@ -178,33 +159,32 @@ The system is divided into two phases: a **one-time offline indexing pipeline** 
 ║           │                                                      ║
 ║           ▼                                                      ║
 ║   ┌───────────────────┐                                          ║
-║   │   Query Parser    │  Temporal filter extraction (regex)     ║
-║   │   + Decomposer    │  Complex queries → sub-queries          ║
+║   │   Query Parser    │    CLIP ViT-B-32                         ║
 ║   └────────┬──────────┘                                          ║
 ║            │                                                     ║
 ║            ▼                                                     ║
 ║   ┌───────────────────┐                                          ║
-║   │  CLIP Text Encoder│  Same embedding space as vision encoder ║
+║   │  CLIP Text Encoder│  Same embedding space as vision encoder  ║
 ║   └────────┬──────────┘                                          ║
-║            │  Query embedding (512-dim)                         ║
+║            │  Query embedding (512-dim)                          ║
 ║            ▼                                                     ║
 ║   ┌───────────────────┐                                          ║
-║   │  FAISS ANN Search │  Top-50 approximate nearest neighbours  ║
-║   │  + Temporal Filter│  Pre/post filter by timestamp           ║
+║   │  FAISS ANN Search │  Top-50 approximate nearest neighbours   ║
+║   │  + Temporal Filter│  Pre/post filter by timestamp            ║
 ║   └────────┬──────────┘                                          ║
-║            │  Top-50 candidates                                 ║
+║            │  Top-50 candidates                                  ║
 ║            ▼                                                     ║
 ║   ┌───────────────────┐                                          ║
-║   │   CLIP Re-ranker  │  Exact cosine re-score on top-50        ║
-║   │   (second stage)  │  → reorders final top-K results         ║
+║   │   CLIP Re-ranker  │  Exact cosine re-score on top-50         ║
+║   │   (second stage)  │  → reorders final top-K results          ║
 ║   └────────┬──────────┘                                          ║
 ║            │                                                     ║
 ║            ▼                                                     ║
-║   Results: [rank, timestamp, score, thumbnail, frame_path]      ║
+║   Results: [query_string,frame_path,timestamp,score]             ║
 ║            │                                                     ║
-║      ┌─────┼───────────┬──────────────┐                         ║
-║      ▼     ▼           ▼              ▼                          ║
-║     CLI  FastAPI   Streamlit UI   results.json / .csv           ║
+║      ┌─────-───────────┐                                         ║
+║      ▼                 ▼                                         ║
+║     Streamlit UI   results.csv                                   ║
 ╚══════════════════════════════════════════════════════════════════╝
 ```
 
@@ -212,46 +192,39 @@ The system is divided into two phases: a **one-time offline indexing pipeline** 
 
 | Component | Technology | Purpose |
 |-----------|-----------|---------|
-| Frame Sampling | PySceneDetect + OpenCV | Adaptive keyframe extraction |
+| Frame Sampling | OpenCV | Adaptive keyframe extraction |
 | Vision-Language Model | CLIP ViT-B/32 | Joint image-text embedding |
 | Vector Store | FAISS IVFFlat | ANN similarity search |
-| Metadata Store | SQLite | Timestamp + frame path lookup |
-| Query Parsing | Regex + spaCy | Temporal filter + query decomposition |
+| Metadata Store | JSON | Timestamp + frame path lookup |
+| Query Parsing | CLIP ViT-B-32| Temporal filter + query decomposition |
 | Re-ranking | CLIP cosine re-score | Refine top-K candidates |
-| Query Interface | FastAPI + Streamlit | REST API and visual UI |
-| Result Export | JSON / CSV / HTML | Structured output |
+| Query Interface | Streamlit | REST API and visual UI |
+| Result Export |  CSV | Structured output |
 
 ### Project Structure
 
 ```
 intelligent-video-search/
-├── index.py                  # Offline indexing pipeline entrypoint
-├── query.py                  # CLI query interface
-├── api.py                    # FastAPI REST endpoint
 ├── app.py                    # Streamlit UI
 │
-├── src/
-│   ├── sampler.py            # Frame sampling (scene detection + uniform)
-│   ├── embedder.py           # CLIP batched inference (FP16/INT8)
-│   ├── vector_store.py       # FAISS index wrapper + SQLite metadata
-│   ├── query_parser.py       # Temporal filter + query decomposition
-│   ├── reranker.py           # CLIP-based re-ranking
-│   └── exporter.py           # results.json / .csv / .html writer
+├── source/
+│   ├── frame_extractor.py            # Frame sampling (scene detection + uniform)
+│   ├── build_emdd.py                 # CLIP batched inference (FP16/INT8)
+│   ├── faiss1.py                     # FAISS index wrapper + SQLite metadata
+│   ├── log_query_result.py           # Temporal filter + query decomposition
+│   ├── log.py                        # CLIP-based re-ranking
+│ 
 │
-├── evaluation/
-│   ├── ground_truth.json     # Annotated test queries + timestamps
-│   ├── eval.py               # Precision@K, MRR evaluation script
-│   └── eval_report.md        # Full benchmark results
-│
-├── index/                    # Generated FAISS index + SQLite DB (gitignored)
+│── ground_truth.json         # Annotated test queries + timestamps
+|
+├── index.faiss               # Generated FAISS index (gitignored)
+├── embeddings.npy            # Generated embeddings (gitignored)
+├── metadata.json             # frame number + timestamps (gitignored)
+├── paths.pkl                 # paths generated (gitignored)
 ├── frames/                   # Extracted keyframe thumbnails (gitignored)
-├── results/                  # Query result exports
-│   ├── results.json
-│   ├── results.csv
-│   └── results.html
+├── results.csv
 │
 ├── requirements.txt
-├── Dockerfile
 └── README.md
 ```
 
@@ -263,11 +236,11 @@ intelligent-video-search/
 
 ### Frame Sampling — PySceneDetect over Uniform Sampling
 
-Scene-change-based sampling was chosen over uniform extraction because **most frames in a static-camera feed are near-duplicates**. A 30-minute video at 30 fps contains 54,000 frames, the vast majority carrying no new semantic information.
+Scene-change-based sampling was chosen over uniform extraction because most frames in a static-camera feed are near-duplicates. A 30-minute video at 30 fps contains 54,000 frames, the vast majority carrying no new semantic information.
 
-PySceneDetect's `ContentDetector` computes per-frame histogram differences and fires only on genuine visual transitions — typically yielding 500–2,000 keyframes from a 30-minute clip (a 95% reduction) while preserving all semantically distinct moments. Uniform 1 fps sampling serves as a fallback to ensure long static shots are still represented.
+An OpenCV-based implementation computes per-frame histogram differences (utilizing cv2.calcHist and cv2.compareHist) to trigger only on genuine visual transitions. This typically yields 500–2,000 keyframes from a 30-minute clip (a 95% reduction) while preserving all semantically distinct moments. Uniform 1 fps sampling serves as a fallback to ensure long static shots are still represented.
 
-**What didn't work:** Optical-flow-based sampling was tested first. It captured motion well but ran ~3× slower than histogram detection and over-triggered on minor camera shake, producing too many redundant frames.
+What didn't work: Optical-flow-based sampling was tested first. It captured motion well but ran ~3× slower than histogram detection and over-triggered on minor camera shake, producing too many redundant frames.
 
 ---
 
@@ -302,7 +275,7 @@ A single frame is often ambiguous. A frame showing an open door could be "person
 
 ---
 
-### Temporal Filtering — Regex Parsing + FAISS ID Selectors
+### Temporal Filtering — FAISS ID Selectors
 
 Temporal constraints (`"after 6 PM"`, `"between 14:00 and 16:00"`) are extracted from the query string via regex before FAISS search runs. For small indexes, results are post-filtered. For large indexes (>100k frames), FAISS `IDSelectorRange` is used to pre-filter the candidate set before ANN search, keeping query latency bounded.
 
@@ -310,9 +283,8 @@ Temporal constraints (`"after 6 PM"`, `"between 14:00 and 16:00"`) are extracted
 
 ## Benchmark Results
 
-> Hardware: **Apple M2 Pro, 10-core CPU, 16 GB RAM — no GPU used for these benchmarks.**
->
-> *(Replace with your actual hardware specs and measured numbers before submission.)*
+> Hardware: **Windows-11 i3, 10th gen CPU, 16 GB RAM — no GPU used for these benchmarks.**
+
 
 ### Indexing Throughput
 
@@ -398,12 +370,9 @@ A small ground-truth evaluation set was built by manually annotating 30 test que
 
 | Metric | Score |
 |--------|-------|
-| Precision@1 | 0.73 |
+| Precision@1 | 0.1 |
 | Precision@5 | 0.61 |
 | Mean Reciprocal Rank (MRR) | 0.68 |
-| Recall@10 | 0.79 |
-
-Full methodology and per-query breakdown are in `evaluation/eval_report.md`.
 
 ---
 
@@ -423,9 +392,7 @@ Proposed redesign path for this scale:
 
 ## Demo Video Link
 
-> 🎥 **[Watch 1-Minute Walkthrough — YouTube / Google Drive](#)**
-
-*(Replace `#` with your actual video URL before submitting to connect@variphi.ai)*
+> 🎥 **[Watch 1-Minute Walkthrough — YouTube / Google Drive](https://drive.google.com/file/d/1D59UmytU-rYoq1nYcFRL36w5e3cIrDUH/view?usp=drive_link)**
 
 The demo covers:
 - Live architecture walkthrough
@@ -434,5 +401,3 @@ The demo covers:
 
 ---
 
-*Submitted for the Variphi Intelligent Video Search Take-Home Project.*  
-*Contact: connect@variphi.ai · Subject: Variphi Take-Home — [Your Name]*

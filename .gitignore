@@ -1,3 +1,8 @@
 myenv/
 frames
 uploaded_video
+index.faiss
+metadata.json
+paths.pkl
+ground_truth.json
+embeddings.npy

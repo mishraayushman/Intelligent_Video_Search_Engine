@@ -7,7 +7,7 @@ Deduplicates near-identical frames before storing.
 import os
 import numpy as np
 from source.clip import encode_image
-from log import logg
+from source.log import logg
 
 def build_embeddings(
     frame_folder: str,
