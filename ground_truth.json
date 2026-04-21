@@ -1,0 +1,18 @@
+[
+  {
+    "query": "students walking on the campus path",
+    "expected_start": 0.0,
+    "expected_end": 20.0
+  },
+  {
+    "query": "motorcycle riding on the road",
+    "expected_start": 35.0,
+    "expected_end": 45.0
+  },
+  {
+    "query": "red vehicle parked in zone 3",
+    "expected_start": 100.0,
+    "expected_end": 120.0
+  }
+  
+]

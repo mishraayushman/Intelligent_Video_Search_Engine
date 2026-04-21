@@ -1,0 +1,2 @@
+[2026-04-21 19:55:17,684 ] 44 root - INFO - Extracted 86 frames at 1 fps from 'uploaded_video.mp4'.
+[2026-04-21 19:55:34,392 ] 31 root - INFO - FAISS index built: 21 vectors, dim=512.

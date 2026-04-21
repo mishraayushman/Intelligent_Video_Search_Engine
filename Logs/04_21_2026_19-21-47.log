@@ -1,0 +1,14 @@
+[2026-04-21 19:22:02,198 ] 326 root - INFO - Parsing model identifier. Schema: None, Identifier: ViT-B-32
+[2026-04-21 19:22:02,198 ] 403 root - INFO - Loaded built-in ViT-B-32 model config.
+[2026-04-21 19:22:02,692 ] 1025 httpx - INFO - HTTP Request: HEAD https://huggingface.co/timm/vit_base_patch32_clip_224.openai/resolve/main/open_clip_model.safetensors "HTTP/1.1 302 Found"
+[2026-04-21 19:22:02,749 ] 500 root - INFO - Instantiating model architecture: CLIP
+[2026-04-21 19:22:05,017 ] 507 root - INFO - Loading full pretrained weights from: C:\Users\binay\.cache\huggingface\hub\models--timm--vit_base_patch32_clip_224.openai\snapshots\a6f597a30f7b82c51704746581f9a4e41421e878\open_clip_model.safetensors
+[2026-04-21 19:22:06,255 ] 621 root - INFO - Final image preprocessing configuration set: {'size': (224, 224), 'mode': 'RGB', 'mean': (0.48145466, 0.4578275, 0.40821073), 'std': (0.26862954, 0.26130258, 0.27577711), 'interpolation': 'bicubic', 'resize_mode': 'shortest', 'fill_color': 0}
+[2026-04-21 19:22:06,257 ] 624 root - INFO - Model ViT-B-32 creation process complete.
+[2026-04-21 19:22:06,257 ] 649 root - INFO - Parsing tokenizer identifier. Schema: None, Identifier: ViT-B-32
+[2026-04-21 19:22:06,257 ] 694 root - INFO - Attempting to load config from built-in: ViT-B-32
+[2026-04-21 19:22:06,257 ] 749 root - INFO - Using default SimpleTokenizer.
+[2026-04-21 19:22:06,559 ] 132 faiss.loader - INFO - Loading faiss with AVX2 support.
+[2026-04-21 19:22:06,696 ] 134 faiss.loader - INFO - Successfully loaded faiss with AVX2 support.
+[2026-04-21 19:23:01,582 ] 44 root - INFO - Extracted 86 frames at 1 fps from 'uploaded_video.mp4'.
+[2026-04-21 19:23:20,813 ] 31 root - INFO - FAISS index built: 21 vectors, dim=512.
