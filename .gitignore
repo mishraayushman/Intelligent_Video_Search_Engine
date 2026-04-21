@@ -1,6 +1,6 @@
 myenv/
 frames
-uploaded_video
+uploaded_video.mp4
 index.faiss
 metadata.json
 paths.pkl

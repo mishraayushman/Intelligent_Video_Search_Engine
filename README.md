@@ -390,7 +390,7 @@ Proposed redesign path for this scale:
 
 ## Demo Video Link
 
-> 🎥 **[Watch 1-Minute Walkthrough — YouTube / Google Drive](https://drive.google.com/file/d/1D59UmytU-rYoq1nYcFRL36w5e3cIrDUH/view?usp=drive_link)**
+> 🎥 **[Watch 1-Minute Walkthrough — Google Drive](https://drive.google.com/file/d/1D59UmytU-rYoq1nYcFRL36w5e3cIrDUH/view?usp=drive_link)**
 
 The demo covers:
 - Live architecture walkthrough
