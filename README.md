@@ -2,8 +2,6 @@
 ### Natural Language Querying Over Video Archives
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python)](https://python.org)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.111-teal?logo=fastapi)](https://fastapi.tiangolo.com)
 [![FAISS](https://img.shields.io/badge/Vector%20Store-FAISS-orange)](https://faiss.ai)
 [![CLIP](https://img.shields.io/badge/Embedding-CLIP%20ViT--B%2F32-purple)](https://openai.com/research/clip)
 
