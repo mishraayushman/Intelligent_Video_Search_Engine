@@ -374,19 +374,6 @@ A small ground-truth evaluation set was built by manually annotating 30 test que
 
 ---
 
-### 5. Scalability Analysis — What Breaks at 1,000 Hours?
-
-At ~19 fps indexing throughput on CPU, 1,000 hours of video (~3.6M keyframes) would take ~52 hours to index. That is the first and most obvious bottleneck.
-
-Proposed redesign path for this scale:
-
-- **Distributed indexing** using Ray workers, each running CLIP inference independently on a partition of videos, with embeddings merged into a shared FAISS index via `faiss.merge_from`.
-- **Hierarchical index** — coarse scene-cluster lookup first, fine-grained ANN within the matching cluster — reducing the effective search space by 10–100×.
-- **LSH-based frame deduplication** before indexing removes near-identical frames, reducing index size by 40–60% for static-camera surveillance footage.
-- **Time-sharded FAISS** — temporal filter queries probe only the relevant time shard, keeping latency bounded regardless of total archive size.
-- **Streaming ingestion** via Kafka + Flink for live or near-live video feeds, replacing the current batch-only pipeline.
-
----
 
 ## Demo Video Link
 
